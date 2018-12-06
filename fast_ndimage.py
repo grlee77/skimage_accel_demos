@@ -9,7 +9,11 @@ By importing from this module rather than scipy.ndimage itself, acceleration
 of these functions is possible without change to code in downstream libraries.
 
 The OpenCV backends usually only support 2D and a limited number of dtypes
-such as uint8, uint16, float32 and/or float64,
+such as uint8, uint16, float32 and/or float64.
+
+Could potentially look into SimpleITK backends as well which should have
+better support for higher dimensions and a wider range of dtypes than OpenCV.
+
 """
 
 import warnings
