@@ -291,9 +291,12 @@ def demo_timing_cpu_vs_gpu():
 
     cat = np.tile(cat, (4, 4, 1))
 
+    nreps = 2
+
     tstart = time()
-    out = denoise_tv_chambolle(cat, multichannel=True)
-    dur_cpu = time() - tstart
+    for n in range(nreps):
+        out = denoise_tv_chambolle(cat, multichannel=True)
+    dur_cpu = (time() - tstart) / nreps
     print("Duration on CPU: {}".format(dur_cpu))
     # 2.73 seconds on CPU
 
@@ -302,9 +305,18 @@ def demo_timing_cpu_vs_gpu():
     outg = denoise_tv_chambolle(catg, multichannel=True)
 
     tstart = time()
-    outg = denoise_tv_chambolle(catg, multichannel=True)
-    dur_gpu = time() - tstart
-    print("Duration on GPU: {}".format(dur_gpu))
+    for n in range(nreps):
+        outg = denoise_tv_chambolle(catg, multichannel=True)
+    dur_gpu = (time() - tstart) / nreps
+    print("Duration on GPU: {} (accel. = {})".format(dur_gpu, dur_cpu/dur_gpu))
+
+    tstart = time()
+    for n in range(nreps):
+        catg = cupy.asarray(cat)
+        outg = denoise_tv_chambolle(catg, multichannel=True)
+        out = outg.get()
+    dur_gpu = (time() - tstart) / nreps
+    print("Duration on GPU (including host/device transfers): {} (accel. = {})".format(dur_gpu, dur_cpu/dur_gpu))
     # 234 ms on GPU
 
 
