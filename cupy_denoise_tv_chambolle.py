@@ -283,41 +283,43 @@ def denoise_tv_chambolle(image, weight=0.1, eps=2.e-4, n_iter_max=200,
 def demo_timing_cpu_vs_gpu():
     from skimage import data
     from time import time
-    cat = data.chelsea().astype(np.float32)
-    cat /= cat.max()
-    cat = cat + 0.2 * np.random.randn(*cat.shape).astype(cat.dtype)
+    for dtype in [np.float32, np.float64]:
+        cat = data.chelsea().astype(dtype)
+        cat /= cat.max()
+        cat = cat + 0.2 * np.random.randn(*cat.shape).astype(dtype)
 
-    # increase dimensions
+        # increase dimensions
 
-    cat = np.tile(cat, (4, 4, 1))
+        # The relative benefit of the GPU is higher for larger inputs.
+        cat = np.tile(cat, (4, 4, 1))
 
-    nreps = 2
+        nreps = 2
 
-    tstart = time()
-    for n in range(nreps):
-        out = denoise_tv_chambolle(cat, multichannel=True)
-    dur_cpu = (time() - tstart) / nreps
-    print("Duration on CPU: {}".format(dur_cpu))
-    # 2.73 seconds on CPU
+        tstart = time()
+        for n in range(nreps):
+            out = denoise_tv_chambolle(cat, multichannel=True)
+        dur_cpu = (time() - tstart) / nreps
+        print("Duration on CPU ({}): {}".format(cat.dtype, dur_cpu))
+        # 2.73 seconds on CPU
 
-    catg = cupy.asarray(cat)
-    # dummy run to make sure all CuPy kernels are compiled prior to timing
-    outg = denoise_tv_chambolle(catg, multichannel=True)
-
-    tstart = time()
-    for n in range(nreps):
-        outg = denoise_tv_chambolle(catg, multichannel=True)
-    dur_gpu = (time() - tstart) / nreps
-    print("Duration on GPU: {} (accel. = {})".format(dur_gpu, dur_cpu/dur_gpu))
-
-    tstart = time()
-    for n in range(nreps):
         catg = cupy.asarray(cat)
+        # dummy run to make sure all CuPy kernels are compiled prior to timing
         outg = denoise_tv_chambolle(catg, multichannel=True)
-        out = outg.get()
-    dur_gpu = (time() - tstart) / nreps
-    print("Duration on GPU (including host/device transfers): {} (accel. = {})".format(dur_gpu, dur_cpu/dur_gpu))
-    # 234 ms on GPU
+
+        tstart = time()
+        for n in range(nreps):
+            outg = denoise_tv_chambolle(catg, multichannel=True)
+        dur_gpu = (time() - tstart) / nreps
+        print("Duration on GPU ({}): {} (accel. = {})".format(cat.dtype, dur_gpu, dur_cpu/dur_gpu))
+
+        tstart = time()
+        for n in range(nreps):
+            catg = cupy.asarray(cat)
+            outg = denoise_tv_chambolle(catg, multichannel=True)
+            out = outg.get()
+        dur_gpu = (time() - tstart) / nreps
+        print("Duration on GPU ({}) (including host/device transfers): {} (accel. = {})".format(cat.dtype, dur_gpu, dur_cpu/dur_gpu))
+        # 234 ms on GPU
 
 
 if __name__ == '__main__':
